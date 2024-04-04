@@ -1,83 +1,40 @@
 import pandas as pd
 import numpy as np
 from LinearRegression import LinearRegression
-from sklearn.model_selection import KFold
-from sklearn.metrics import mean_absolute_error
 
 df = pd.read_csv('grouped_data.csv')
-df = df.drop(['transaction_date'],axis=1)
-df.replace('Monday', 0, inplace=True)
-df.replace('Tuesday', 1, inplace=True)
-df.replace('Wednesday', 2, inplace=True)
-df.replace('Thursday', 3, inplace=True)
-df.replace('Friday', 4, inplace=True)
-df.replace('Saturday', 5, inplace=True)
-df.replace('Sunday', 6, inplace=True)
+df = df.drop(['transaction_date'], axis=1)
+df = df.drop(['store_location'], axis=1)
+df['transaction_qty'] = (df['transaction_qty'] - df['transaction_qty'].min()) / (df['transaction_qty'].max() - df['transaction_qty'].min())
+df['unit_price'] = (df['unit_price'] - df['unit_price'].min()) / (df['unit_price'].max() - df['unit_price'].min())
 
-df.replace('Astoria', 0, inplace=True)
-df.replace("Hell's Kitchen", 1, inplace=True)
-df.replace('Lower Manhattan', 2, inplace=True)
-
-df.replace('Bakery', 0, inplace=True)
-df.replace('Branded', 1, inplace=True)
-df.replace('Coffee', 2, inplace=True)
-df.replace('Coffee beans', 3, inplace=True)
-df.replace('Drinking Chocolate', 4, inplace=True)
-df.replace('Flavours', 5, inplace=True)
-df.replace('Loose Tea', 6, inplace=True)
-df.replace('Packaged Chocolate', 7, inplace=True)
-df.replace('Tea', 8, inplace=True)
-
-df.replace('Barista Espresso', 0, inplace=True)
-df.replace('Biscotti', 1, inplace=True)
-df.replace('Black tea', 2, inplace=True)
-df.replace('Brewed Black tea', 3, inplace=True)
-df.replace('Brewed Green tea', 4, inplace=True)
-df.replace('Brewed herbal tea', 5, inplace=True)
-df.replace('Clothing', 6, inplace=True)
-df.replace('Drinking Chocolate', 7, inplace=True)
-df.replace('Drip coffee', 8, inplace=True)
-df.replace('Espresso Beans', 9, inplace=True)
-df.replace('Gourmet Beans', 10, inplace=True)
-df.replace('Gourmet brewed coffee', 11, inplace=True)
-df.replace('Green beans', 12, inplace=True)
-df.replace('Green tea', 13, inplace=True)
-df.replace('Herbal tea', 14, inplace=True)
-df.replace('Hot chocolate', 15, inplace=True)
-df.replace('House blend Beans', 16, inplace=True)
-df.replace('Housewares', 17, inplace=True)
-df.replace('Organic Beans', 18, inplace=True)
-df.replace('Organic Chocolate', 19, inplace=True)
-df.replace('Organic brewed coffee', 20, inplace=True)
-df.replace('Pastry', 21, inplace=True)
-df.replace('Premium Beans', 22, inplace=True)
-df.replace('Premium brewed coffee', 23, inplace=True)
-df.replace('Regular syrup', 24, inplace=True)
-df.replace('Scone', 25, inplace=True)
-df.replace('Sugar free syrup', 26, inplace=True)
-df.replace('Brewed Chai tea', 27, inplace=True)
-df.replace('Chai tea', 28, inplace=True)
-
-df.replace('Large', 0, inplace=True)
-df.replace('Not Defined', 1, inplace=True)
-df.replace('Regular', 2, inplace=True)
-df.replace('Small', 3, inplace=True)
+df.replace({'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3, 'Friday': 4, 'Saturday': 5, 'Sunday': 6}, inplace=True)
+df.replace({'Bakery': 0, 'Branded': 1, 'Coffee': 2, 'Coffee beans': 3, 'Drinking Chocolate': 4, 'Flavours': 5, 'Loose Tea': 6, 'Packaged Chocolate': 7, 'Tea': 8}, inplace=True)
+df.replace({'Biscotti': 0, 'Pastry': 1, 'Scone': 2, 'Clothing': 3, 'Housewares': 4, 'Barista Espresso': 5, 'Drip coffee': 6, 'Gourmet brewed coffee': 7, 'Organic brewed coffee': 8, 'Premium brewed coffee': 9, 'Espresso Beans': 10, 'Gourmet Beans': 11, 'Green beans': 12, 'House blend Beans': 13, 'Organic Beans': 14, 'Premium Beans': 15, 'Hot chocolate': 16, 'Regular syrup': 17, 'Sugar free syrup': 18, 'Black tea': 19, 'Chai tea': 20, 'Green tea': 21, 'Herbal tea': 22, 'Drinking Chocolate': 23, 'Organic Chocolate': 24, 'Brewed Black tea': 25, 'Brewed Chai tea': 26, 'Brewed Green tea': 27, 'Brewed herbal tea': 28}, inplace=True)
+df.replace({'Large': 0, 'Not Defined': 1, 'Regular': 1, 'Small': 2}, inplace=True)
 
 X = df.drop(['transaction_qty'], axis=1)
 y = df['transaction_qty']
 
-kf = KFold(n_splits=10, shuffle=True)
+def k_fold_split(X, y, n_splits=10, shuffle=True):
+    indices = np.arange(len(X))
+    np.random.shuffle(indices)
+    fold_size = len(X) // n_splits
+    for i in range(0, len(X), fold_size):
+        test_indices = indices[i:i+fold_size]
+        train_indices = np.concatenate((indices[:i], indices[i+fold_size:]))
+        yield X.iloc[train_indices], X.iloc[test_indices], y.iloc[train_indices], y.iloc[test_indices]
+
 model = LinearRegression()
 
-mse_scores = []
-for train_index, test_index in kf.split(X):
-    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+mae_scores = []
+kf = k_fold_split(X, y)
+for X_train, X_test, y_train, y_test in kf:
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
-    mse = mean_absolute_error(y_test, y_pred)
-    mse_scores.append(mse)
+    mae = np.mean(np.abs(y_test - y_pred))
+    mae_scores.append(mae)
 
-avg_mse = sum(mse_scores) / len(mse_scores)
+avg_mae = sum(mae_scores) / len(mae_scores)
 
-print(f'Average absolute Squared Error: {avg_mse}')
+print(f'Average absolute Squared Error: {avg_mae}')
