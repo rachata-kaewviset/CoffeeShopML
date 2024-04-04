@@ -20,4 +20,4 @@ class LinearRegression:
 
     def predict(self, X):
         X_b = np.c_[np.ones((len(X), 1)), X]
-        return X_b.dot(np.hstack((self.intercept_, self.coef_)))
+        return np.floor(abs(X_b.dot(np.hstack((self.intercept_, self.coef_)))))
