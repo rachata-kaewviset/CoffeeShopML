@@ -67,23 +67,17 @@ X = df.drop(['transaction_qty'], axis=1)
 y = df['transaction_qty']
 
 kf = KFold(n_splits=10, shuffle=True)
-model = LinearRegression(alpha=0.1, regularization='l2')
+model = LinearRegression()
 
 mse_scores = []
-r2_scores = []
 for train_index, test_index in kf.split(X):
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     y_train, y_test = y.iloc[train_index], y.iloc[test_index]
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     mse = mean_absolute_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
     mse_scores.append(mse)
-    r2_scores.append(r2)
-    print(y_pred)
-
 
 avg_mse = sum(mse_scores) / len(mse_scores)
-avg_r2 = sum(r2_scores) / len(r2_scores)
 
 print(f'Average absolute Squared Error: {avg_mse}')
